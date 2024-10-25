@@ -3,8 +3,9 @@ import time
 import pyautogui
 import keyboard
 import math
-from win32 import win32gui
+from win32 import win32gui # pip install pywin32
 
+SCALE = [1.34175, 1.0175, 0]
 
 class Point:
     def __init__(self, x, y):
@@ -24,7 +25,7 @@ class Point:
         return Point(self.x - other.x, self.y - other.y)
 
     def distance(self, other):
-        return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
+        return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
 
 
 def get_window_handle(title):
@@ -49,8 +50,8 @@ class State:
         self.though = None
         self.target = None
         self.solution = []
-        self.flag = False
-        self.hwnd = get_window_handle('ShellShock Live')
+        self.need_refresh = False
+        self.hwnd = get_window_handle("ShellShock Live")
 
     def set_start_point(self):
         x, y = pyautogui.position()
@@ -62,7 +63,7 @@ class State:
         self.target = self.start - Point(x, y)
         self.target.x = abs(self.target.x)
         print(f"target point: {self.target}")
-        self.flag = True
+        self.need_refresh = True
 
     def set_though_point(self):
         x, y = pyautogui.position()
@@ -73,19 +74,18 @@ class State:
     def find_solution(self):
         window_width, window_height = get_window_size(self.hwnd)
         screen_width, screen_height = pyautogui.size()
-        # 2880 is resolution of **my** screen
-        scale = 2880 / window_width
+        # only tested on **my** screen
+        scale = screen_width / window_width
 
         solution = []
         for angle in range(90, 0, -1):
             best = math.inf
             ans = None
             for speed in range(1, 100):
-                res_target = self.distance_to(angle, speed, self.target*scale)
+                res_target = self.distance_to(angle, speed, self.target * scale)
                 dis = abs(res_target)
                 if self.though is not None:
-                    res_though = self.distance_to(
-                        angle, speed, self.though*scale)
+                    res_though = self.distance_to(angle, speed, self.though * scale)
                     dis += abs(res_though)
                 else:
                     res_though = 0
@@ -100,15 +100,17 @@ class State:
         angle = math.radians(angle)
 
         def y(x):
-            return 1.0175*x*math.tan(angle) - 1.34175*((x/speed/math.cos(angle))**2)
+            return  -SCALE[0] * (
+                (x / speed / math.cos(angle)) ** 2
+            ) + SCALE[1] * x * math.tan(angle) + SCALE[2]
 
         def dis(x):
             return Point(x, y(x)).distance(target)
 
         # return min(dis(x) for x in range(int(target.x*0.8),target.x))
 
-        left = target.x*0.9
-        right = target.x*1.05
+        left = target.x * 0.9
+        right = target.x * 1.05
         while right - left > 1:
             mid1 = left + (right - left) / 3
             mid2 = right - (right - left) / 3
@@ -126,26 +128,29 @@ def main():
     screenWidth, screenHeight = pyautogui.size()
     px, py = pyautogui.position()
 
-    keyboard.add_hotkey('[', state.set_start_point)
-    keyboard.add_hotkey(']', state.set_target_point)
-    keyboard.add_hotkey('\\', state.set_though_point)
+    keyboard.add_hotkey("[", state.set_start_point)
+    keyboard.add_hotkey("]", state.set_target_point)
+    keyboard.add_hotkey("\\", state.set_though_point)
 
     while True:
-        if state.flag:
+        if state.need_refresh:
             os.system("cls")
             state.find_solution()
             dis_top = [dis for (speed, angle, dis, mis) in state.solution]
             dis_top.sort(key=lambda x: abs(x))
             dis_top = dis_top[:30]
-            for (speed, angle, dis, mis) in state.solution:
+            for speed, angle, dis, mis in state.solution:
                 if dis in dis_top and abs(mis[0]) < 20:
                     print(f"{speed},{angle} \t {
                           int(mis[0]):+} {int(mis[1]):+}")
-            state.flag = False
+            state.need_refresh = False
             state.though = None
         else:
             time.sleep(0.05)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    print("[ at your ass")
+    print("] at your target")
+    print("\\ at your though")
     main()
