@@ -1,4 +1,3 @@
-import os
 import time
 import pyautogui
 import keyboard
@@ -27,6 +26,7 @@ class Record:
     def __init__(self):
         self.points = []
         self.start_point = None
+        self.finished = False
 
     def set_start_point(self, point):
         self.start_point = point
@@ -41,7 +41,8 @@ class Record:
         self.points.append(point - self.start_point)
 
     def finish(self):
-        with open(f"data.csv", 'w') as f:
+        self.finished = True
+        with open("data.csv", 'w') as f:
             for point in self.points:
                 f.write(f"{point.x},{point.y}\n")
 
@@ -59,7 +60,11 @@ def f2():
 
 
 rec = Record()
-keyboard.add_hotkey('`', rec.record)
+keyboard.add_hotkey('\\', rec.record)
 keyboard.add_hotkey('q', rec.finish)
 
-input("recording")
+print("Press hotkey <\\> to record your path.")
+print("Start your first at middle of your tank as the start point.")
+print("Press hotkey <q> to stop...\n")
+while not rec.finished:
+    time.sleep(1)
