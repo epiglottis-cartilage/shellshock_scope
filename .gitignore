@@ -1,0 +1,5 @@
+.venv/
+*.csv
+uv.lock
+.python-version
+scale.txt

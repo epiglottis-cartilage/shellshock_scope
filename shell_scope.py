@@ -3,9 +3,16 @@ import time
 import pyautogui
 import keyboard
 import math
-from win32 import win32gui # pip install pywin32
+from win32 import win32gui  # pip install pywin32
 
-SCALE = [1.34175, 1.0175, 0]
+try:
+    with open("scale.txt", "r") as f:
+        SCALE = list(map(float, f.read().strip().split(",")))
+except FileNotFoundError:
+    print("scale.txt not found, maybe this is your first run?")
+    print("Please read the README.md for instructions.")
+    exit(1)
+
 
 class Point:
     def __init__(self, x, y):
@@ -31,7 +38,7 @@ class Point:
 def get_window_handle(title):
     hwnd = win32gui.FindWindow(None, title)
     if hwnd == 0:
-        raise Exception(f"Window '{title}' not found")
+        raise RuntimeError(f"Window '{title}' not found")
     return hwnd
 
 
@@ -45,6 +52,13 @@ def get_window_size(hwnd):
 
 
 class State:
+    start: Point | None
+    though: Point | None
+    target: Point | None
+    solution: list
+    need_refresh: bool
+    hwnd: int
+
     def __init__(self):
         self.start = None
         self.though = None
@@ -57,35 +71,49 @@ class State:
         x, y = pyautogui.position()
         self.start = Point(x, y)
         print(f"start point: {self.start}")
+        # self.need_refresh = self.target is not None
 
     def set_target_point(self):
         x, y = pyautogui.position()
-        self.target = self.start - Point(x, y)
-        self.target.x = abs(self.target.x)
+        self.target = Point(x, y)
         print(f"target point: {self.target}")
-        self.need_refresh = True
+        self.need_refresh = self.start is not None
 
     def set_though_point(self):
         x, y = pyautogui.position()
-        self.though = self.start - Point(x, y)
+        self.though = Point(x, y)
         self.though.x = abs(self.though.x)
         print(f"through point: {self.though}")
+        self.need_refresh = self.start is not None and self.target is not None
 
     def find_solution(self):
+        assert self.start is not None, "Start point must be set"
+        assert self.target is not None, "Target point must be set"
+
         window_width, window_height = get_window_size(self.hwnd)
         screen_width, screen_height = pyautogui.size()
         # only tested on **my** screen
         scale = screen_width / window_width
+
+        start = self.start
+        target = start - self.target
+        target.x = abs(target.x)
+
+        if self.though is not None:
+            though = start - self.though
+            though.x = abs(though.x)
+        else:
+            though = None
 
         solution = []
         for angle in range(90, 0, -1):
             best = math.inf
             ans = None
             for speed in range(1, 100):
-                res_target = self.distance_to(angle, speed, self.target * scale)
+                res_target = self.distance_to(angle, speed, target * scale)
                 dis = abs(res_target)
-                if self.though is not None:
-                    res_though = self.distance_to(angle, speed, self.though * scale)
+                if though is not None:
+                    res_though = self.distance_to(angle, speed, though * scale)
                     dis += abs(res_though)
                 else:
                     res_though = 0
@@ -100,9 +128,11 @@ class State:
         angle = math.radians(angle)
 
         def y(x):
-            return  -SCALE[0] * (
-                (x / speed / math.cos(angle)) ** 2
-            ) + SCALE[1] * x * math.tan(angle) + SCALE[2]
+            return (
+                -SCALE[0] * ((x / speed / math.cos(angle)) ** 2)
+                + SCALE[1] * x * math.tan(angle)
+                + SCALE[2]
+            )
 
         def dis(x):
             return Point(x, y(x)).distance(target)
@@ -141,8 +171,7 @@ def main():
             dis_top = dis_top[:30]
             for speed, angle, dis, mis in state.solution:
                 if dis in dis_top and abs(mis[0]) < 20:
-                    print(f"{speed},{angle} \t {
-                          int(mis[0]):+} {int(mis[1]):+}")
+                    print(f"{speed},{angle} \t {int(mis[0]):+} {int(mis[1]):+}")
             state.need_refresh = False
             state.though = None
         else:

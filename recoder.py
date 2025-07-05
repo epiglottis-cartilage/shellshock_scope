@@ -19,7 +19,7 @@ class Point:
         return Point(self.x - other.x, self.y - other.y)
 
     def distance(self, other):
-        return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
+        return math.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
 
 
 class Record:
@@ -41,10 +41,17 @@ class Record:
         self.points.append(point - self.start_point)
 
     def finish(self):
+        if len(self.points) < 5:
+            print("Not enough points recorded. At least 5 points are required.")
+            return
         self.finished = True
-        with open("data.csv", 'w') as f:
+        sign = 1 if self.points[1].x >= 0 else -1
+        assert all(point.x * sign >= 0 for point in self.points), (
+            "All points must be on the same side of the start point."
+        )
+        with open("data.csv", "w") as f:
             for point in self.points:
-                f.write(f"{point.x},{point.y}\n")
+                f.write(f"{abs(point.x)},{point.y}\n")
 
 
 def f1():
@@ -60,9 +67,10 @@ def f2():
 
 
 rec = Record()
-keyboard.add_hotkey('\\', rec.record)
-keyboard.add_hotkey('q', rec.finish)
+keyboard.add_hotkey("\\", rec.record)
+keyboard.add_hotkey("q", rec.finish)
 
+print("In maximized window, use speed 100 angle 45.")
 print("Press hotkey <\\> to record your path.")
 print("Start your first at middle of your tank as the start point.")
 print("Press hotkey <q> to stop...\n")

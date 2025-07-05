@@ -7,7 +7,7 @@ A simple (non intrusive) trainer for [ShellShock Live](http://www.shellshocklive
 
 0. Find out scale on your screen:
    1. Run `./record.py` and game.
-   2. Start a `firing range` in **Maximize Window / Full Screen** mode (that is at width as your screen) and shoot at speed 100 angle 45. 
+   2. Start a `firing range` in **Maximize Window / Full Screen** mode (that is at width as your screen) and shoot at **speed 100 angle 45**. 
    3. Put your mouse on the center of your tank and press `\`.
    4. Key `\` where your bullet pass through for as many times as you want.
    5. Key `q` to end recording.
