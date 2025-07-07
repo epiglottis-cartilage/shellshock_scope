@@ -84,7 +84,7 @@ class State:
         self.though = Point(x, y)
         self.though.x = abs(self.though.x)
         print(f"through point: {self.though}")
-        self.need_refresh = self.start is not None and self.target is not None
+        
 
     def find_solution(self):
         assert self.start is not None, "Start point must be set"
